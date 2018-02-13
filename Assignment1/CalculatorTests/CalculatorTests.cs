@@ -115,8 +115,12 @@ namespace CalculatorTests
         {
             int[] expected = new int[] { -123, 22, 0, 44, 5 };
             var myParser = new CalculatorProgram.CalcInputParser();
-            var result = myParser.ParseStringInputToAddends("-123,22,\n44,5");
-            Assert.AreEqual(expected, result);
+            var results = myParser.ParseStringInputToAddends("-123,22,\n44,5");
+            for(int i = 0; i < results.Length; i++)
+            {
+
+                Assert.AreEqual(expected[i], results[i]);
+            }
         }
 
         [TestMethod]
@@ -128,20 +132,133 @@ namespace CalculatorTests
         }
 
         [TestMethod]
+        public void LineBreaksAsDefaultDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("-123\n22\n44\n5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
         public void CustomDelimiter()
         {
             var myCalc = new CalculatorProgram.Calculator();
-            var result = myCalc.Add("//y\n-123y22y\n44y5");
+            var result = myCalc.Add("//y\n-123y22y44y5");
             Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void CustomDelimiterAndNewLine()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//y\n-123y22y\n44y5");
         }
 
         [TestMethod]
         public void AddNumberGreaterThanOneThousand()
         {
             var myCalc = new CalculatorProgram.Calculator();
-            var result = myCalc.Add("1123,22,2044,5");
-            Assert.AreEqual(194, result);
+            var result = myCalc.Add("1123,22,1000,5");
+            Assert.AreEqual(1027, result);
         }
 
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void CommasAfterCustomDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//y\n-123,22,\n44y5");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void NumberAsCustomDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//5\n-1235225\n4455");
+        }
+
+        [TestMethod]
+        public void MultipleCustomSingleCharDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[y][z]\n-123y22z44y5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        public void MultipleCharDelimiterWithBrackets()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[yz]\n-123yz22yz44yz5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        public void MultipleCharDelimiterWithoutBrackets()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//yz\n-123yz22yz44yz5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        public void HyphenAsDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//-\n--123-22-44-5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        public void HyphenAsOneOfMultipleDelimiters()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[abc][-]\n--123-22abc44-5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void BracketsAsDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[]\n-123[]22[]44[]5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void QuotesAsDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add(@"//[""]\n-123[]22[]44[]5");
+            Assert.AreEqual(-52, result);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void MultiDigitNumberAsOneOfMultipleDelimiters()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[abc][456]\n-123abc22456444565");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void DelimiterAsSubsetOfAnotherDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[a][abc]\n-123a22abc44a5");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(System.ArgumentException))]
+        public void NewLineAsOneOfMultipleCustomDelimiter()
+        {
+            var myCalc = new CalculatorProgram.Calculator();
+            var result = myCalc.Add("//[!][\n]\n-123\n22!44!5");
+        }
     }
 }

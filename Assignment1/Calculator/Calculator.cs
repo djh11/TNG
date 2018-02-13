@@ -23,7 +23,6 @@ namespace CalculatorProgram
         }
 
         public int Add(string stuffToAdd = "")
-        //obviously not SOLID, minimum done to get tests green
         {
             try
             {
@@ -34,7 +33,6 @@ namespace CalculatorProgram
             {
                 throw exception;
             }
-            Console.WriteLine(addends);
 
             for (int i = 0; i < addends.Length; i++)
             {

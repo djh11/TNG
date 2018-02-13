@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CalculatorProgram
 {
     public class CalcInputParser
     {
-        private string delimiter;
+        private List<String> delimiters;
 
-        public string Delimiter
+        public List<String> Delimiters
         {
-            get { return delimiter; }
-            set { delimiter = value; }
+            get { return delimiters; }
+            set { delimiters = value; }
         }
 
         private int[] addends;
@@ -31,23 +32,17 @@ namespace CalculatorProgram
                 addends[0] = 0;
             }
 
-            //business rule: if single addend (no delimiters) return that addend
-            else if(!CheckForCustomDelimiter(input) && !CheckForDefaultDelimiter(input))
-            {
-                addends = new int[1];
-                bool result = Int32.TryParse(input, out addends[0]);
-                if (!result)
-                {
-                    throw new ArgumentException("trash input");
-                }
-            }
-
             //business rule: allow user to input custom delimiters to separate inputs
             else if (CheckForCustomDelimiter(input))
             {
-                delimiter = input[2].ToString();
-                input = input.Substring(4);
-                string[] tempStrings = SplitOnDelimiterAndLineBreak(input, delimiter);
+                delimiters = new List<string>();
+                delimiters = ParseForCustomDelimiters(input);
+                if (!CheckDelimiterValidity(delimiters))
+                {
+                    throw new ArgumentException("Delimiter cannot be a number or '-'.");
+                }
+                input = TrimDelimiterHeaderFromInput(input, delimiters);
+                string[] tempStrings = SplitOnDelimiters(input, delimiters);
                 addends = new int[tempStrings.Length];
                 addends = ParseStringArrayAndCheckForTrash(tempStrings);
 
@@ -56,15 +51,56 @@ namespace CalculatorProgram
             //but don't require it, set default delimiter to ";"
             else
             {
-                delimiter = ",";
-                string[] tempStrings = SplitOnDelimiterAndLineBreak(input, delimiter);
+                delimiters = new List<string>();
+                delimiters.Add(",");
+                input = ChangeLineBreakToDefaultDelimiter(input, delimiters[0]);
+                string[] tempStrings = SplitOnDelimiters(input, delimiters);
                 addends = new int[tempStrings.Length];
                 addends = ParseStringArrayAndCheckForTrash(tempStrings);
             }
 
-            addends = ChangeAllAddendsToMaxThreeDigits(addends);
-            Console.WriteLine(addends);
+            addends = ThrowOutNumbersGreaterThan1000(addends);
+
             return addends;
+        }
+
+        private string TrimDelimiterHeaderFromInput(string input, List<String> delimiters)
+        {
+            string[] temp = input.Split("\n");
+            if(temp.Length > 2)
+            {
+                throw new ArgumentException("Cannot use line break with a custom delimiter");
+            }
+            else
+            {
+                return temp[1];
+            }
+
+        }
+
+        private List<string> ParseForCustomDelimiters(string input)
+        {
+            List<string> customDelimiters = new List<string>();
+            string[] temp = input.Split("\n");
+            string delimHeader = temp[0];
+            string[] temp2 = delimHeader.Split("][");
+
+            foreach(string delim in temp2)
+            {
+                bool isSubstringOrDupe = customDelimiters.Any(s => s.Contains(delim));
+                if (!isSubstringOrDupe)
+                {
+                    customDelimiters.Add(delim);
+                }
+            }
+            for(int i = 0; i < customDelimiters.Count; i++)
+            {
+                customDelimiters[i] = customDelimiters[i].Replace("//", "");
+                customDelimiters[i] = customDelimiters[i].Replace("[", "");
+                customDelimiters[i] = customDelimiters[i].Replace("]", "");
+            }
+
+            return customDelimiters;
         }
 
         private bool CheckForEmptyInput(string input)
@@ -91,23 +127,81 @@ namespace CalculatorProgram
             }
         }
 
-        private bool CheckForDefaultDelimiter(string input)
+        private bool CheckDelimiterValidity(List<String> delimiter)
         {
-            if (input.Contains(","))
+            bool delimiterValidity = true;
+            for(int i = 0; i < delimiter.Count; i++)
             {
-                return true;
+                char[] temp = delimiter[i].ToCharArray();
+                for (int j = 0; j < temp.Length; j++)
+                {
+                    if (!Char.IsDigit(temp[j]))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        delimiterValidity = false;
+                    }
+                }
+            }
+
+            return delimiterValidity;
+        }
+        
+        private string ChangeLineBreakToDefaultDelimiter(string input, string delimiter)
+        {
+            if (delimiter == ",")
+            {
+                input = input.Replace("\n", delimiter);
+            }
+
+            return input;
+        }
+
+        private string[] SplitOnDelimiters(string input, List<String> delimiter)
+        {
+            if (delimiter[0] == ",")
+            {
+                input = input.Replace("\n", delimiter[0]);
             }
             else
             {
-                return false;
+                foreach (string delim in delimiter)
+                {
+                    if (delim == "-")
+                    {
+                        input = input.Replace("--", "-negative");
+                        input = input.Replace("-", ",");
+                        input = input.Replace("negative", "-");
+                    }
+                    else
+                    {
+                        input = input.Replace(delim, ",");
+                    }
+                }
             }
+            return input.Split(",");
         }
-        
-        private string[] SplitOnDelimiterAndLineBreak(string input, string delimiter)
+
+        private bool CheckForHyphenAsDelimiter(List<string> delimiter)
         {
-            input = input.Replace("\n", delimiter);
-            return input.Split(delimiter);
+            bool hyphenAsDelimiter = false;
+            foreach (string delim in delimiter)
+            {
+                if(delim == "-")
+                {
+                    hyphenAsDelimiter = true;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            return hyphenAsDelimiter;
         }
+
         private int[] ParseStringArrayAndCheckForTrash(string[] input)
         {
             int[] results = new int[input.Length];
@@ -129,28 +223,21 @@ namespace CalculatorProgram
             return results;
         }
         
-        private int[] ChangeAllAddendsToMaxThreeDigits(int[] oldAddends)
+        private int[] ThrowOutNumbersGreaterThan1000(int[] oldAddends)
         {
             int[] newAddends = new int[oldAddends.Length];
             for(int i = 0; i < oldAddends.Length; i++)
             {
-                string tempString = oldAddends[i].ToString();
-                if(tempString.Length > 3)
+                if(oldAddends[i] > 1000)
                 {
-                    if (tempString.Contains("-"))
-                    {
-                        tempString = tempString.Substring(tempString.Length - 4);
-                    }
-                    else
-                    {
-                        tempString = tempString.Substring(tempString.Length - 3);
-                    }
-                    Console.WriteLine(tempString);
+                    newAddends[i] = 0;
                 }
-                newAddends[i] = Int32.Parse(tempString);
+                else
+                {
+                    newAddends[i] = oldAddends[i];
+                }
             }
-
-            Console.WriteLine(newAddends);
+            
             return newAddends;
         }
 
