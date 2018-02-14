@@ -25,8 +25,11 @@ namespace CalculatorProgram
 
         public int[] ParseStringInputToAddends(string input = "")
         {
+
+            delimiters = new List<string>();
+
             //business rule: if empty string, return 0
-            if(CheckForEmptyInput(input))
+            if (CheckForEmptyInput(input))
             {
                 addends = new int[1];
                 addends[0] = 0;
@@ -35,12 +38,12 @@ namespace CalculatorProgram
             //business rule: allow user to input custom delimiters to separate inputs
             else if (CheckForCustomDelimiter(input))
             {
-                delimiters = new List<string>();
                 delimiters = ParseForCustomDelimiters(input);
                 if (!CheckDelimiterValidity(delimiters))
                 {
                     throw new ArgumentException("Delimiter cannot be a number or '-'.");
                 }
+
                 input = TrimDelimiterHeaderFromInput(input, delimiters);
                 string[] tempStrings = SplitOnDelimiters(input, delimiters);
                 addends = new int[tempStrings.Length];
@@ -48,19 +51,18 @@ namespace CalculatorProgram
 
             }
 
-            //but don't require it, set default delimiter to ";"
+            //but don't require it, set default delimiter to ","
             else
             {
-                delimiters = new List<string>();
                 delimiters.Add(",");
                 input = ChangeLineBreakToDefaultDelimiter(input, delimiters[0]);
+
                 string[] tempStrings = SplitOnDelimiters(input, delimiters);
                 addends = new int[tempStrings.Length];
                 addends = ParseStringArrayAndCheckForTrash(tempStrings);
             }
 
             addends = ThrowOutNumbersGreaterThan1000(addends);
-
             return addends;
         }
 
@@ -182,24 +184,6 @@ namespace CalculatorProgram
                 }
             }
             return input.Split(",");
-        }
-
-        private bool CheckForHyphenAsDelimiter(List<string> delimiter)
-        {
-            bool hyphenAsDelimiter = false;
-            foreach (string delim in delimiter)
-            {
-                if(delim == "-")
-                {
-                    hyphenAsDelimiter = true;
-                }
-                else
-                {
-                    continue;
-                }
-            }
-
-            return hyphenAsDelimiter;
         }
 
         private int[] ParseStringArrayAndCheckForTrash(string[] input)
